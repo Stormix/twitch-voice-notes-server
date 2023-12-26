@@ -1,5 +1,8 @@
+import { PrismaClient } from '@prisma/client';
 import { Server } from 'bun';
+import prisma from './lib/db';
 import Logger from './lib/logger';
+import { record } from './lib/routes';
 import { Client, WebSocket } from './types';
 
 export class App {
@@ -8,12 +11,12 @@ export class App {
   debug: boolean = true;
   clients: Record<string, Client> = {};
   logger = new Logger({ name: 'twitch-voice-notes' });
+  db: PrismaClient = prisma;
 
-  constructor() {
-    //TODO
-  }
+  constructor() {}
 
   listen(port: number | string) {
+    this.db.$connect();
     this.logger.info('Starting server on port', port);
     this.server = Bun.serve({
       port,
@@ -26,6 +29,9 @@ export class App {
                 'content-type': 'application/json'
               }
             });
+          case '/record': {
+            return record(req);
+          }
           case '/ws':
             if (
               server.upgrade(req, {
@@ -85,6 +91,7 @@ export class App {
     Object.values(this.clients).forEach((client) => client.ws.close());
     this.server?.stop(true);
     clearInterval(this.heartbeat || undefined);
+    this.db.$disconnect();
   }
 }
 
