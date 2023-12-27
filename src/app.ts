@@ -38,7 +38,17 @@ export class App {
     this.logger.info('Deleting', voiceNotes.length, 'voice notes');
 
     // Delete files
-    await Promise.all(voiceNotes.map((vn) => unlink(vn.path)));
+    await Promise.all(
+      voiceNotes.map((vn) => {
+        try {
+          unlink(vn.path);
+        } catch (e) {
+          this.logger.warn('Failed to delete file, does it exist?', vn.path);
+        } finally {
+          return;
+        }
+      })
+    );
 
     // Delete records
     await this.db.voiceNote.deleteMany({
