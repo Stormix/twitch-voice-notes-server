@@ -1,8 +1,8 @@
 import { App } from '@/app';
+import { writeFile } from 'node:fs/promises';
 import { Logger } from 'tslog';
 import prisma from './db';
 import { recordPayloadSchema } from './validation';
-
 const logger = new Logger({ name: '/record' });
 
 export const record = async (req: Request, app: App) => {
@@ -13,14 +13,18 @@ export const record = async (req: Request, app: App) => {
 
     const formdata = await req.formData();
     const payload = recordPayloadSchema.parse(Object.fromEntries(formdata));
-    const audio = formdata.get('audio');
+    const audio = formdata.get('audio') as unknown as Blob;
 
     if (!audio) {
       return new Response('No audio file', { status: 400 });
     }
 
+    const stream = audio.stream();
     const path = `data/${crypto.randomUUID()}.wav`;
-    await Bun.write(path, audio as unknown as Blob);
+
+    logger.info('Writing file to', path);
+
+    await writeFile(path, stream);
 
     const voiceNote = await prisma.voiceNote.create({
       data: {
