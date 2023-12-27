@@ -23,12 +23,12 @@ export class App {
   logger = new Logger({ name: 'twitch-voice-notes' });
   db: PrismaClient = prisma;
 
-  cron = Cron('0 */5 * * * *', async () => {
+  cron = Cron('0 */30 * * * *', async () => {
     // Delete all voice notes older than 5 minutes
     const voiceNotes = await this.db.voiceNote.findMany({
       where: {
         createdAt: {
-          lt: new Date(Date.now() - 5 * 60 * 1000)
+          lt: new Date(Date.now() - 30 * 60 * 1000)
         }
       }
     });
@@ -66,6 +66,7 @@ export class App {
     this.db.$connect();
     this.logger.info('Starting server on port', port);
     this.server = Bun.serve({
+      development: true,
       port,
       fetch: (req, server) => {
         // Handle CORS preflight requests

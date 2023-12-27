@@ -3,9 +3,6 @@ import { writeFile } from 'node:fs/promises';
 import { Logger } from 'tslog';
 import prisma from './db';
 import { recordPayloadSchema } from './validation';
-
-import { readFile } from 'node:fs/promises';
-
 const logger = new Logger({ name: '/record' });
 
 export const record = async (req: Request, app: App) => {
@@ -79,11 +76,5 @@ export const getVoiceNote = async (req: Request) => {
     return new Response('Not found', { status: 404 });
   }
 
-  const stream = await readFile(voiceNote.path);
-
-  return new Response(stream, {
-    headers: {
-      'content-type': 'audio/wav'
-    }
-  });
+  return new Response(Bun.file(voiceNote.path));
 };
