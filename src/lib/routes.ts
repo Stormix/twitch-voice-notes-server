@@ -7,7 +7,6 @@ const logger = new Logger({ name: '/record' });
 
 export const record = async (req: Request, app: App) => {
   try {
-    logger.info('Recording request', req);
     if (req.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
@@ -50,7 +49,7 @@ export const record = async (req: Request, app: App) => {
       }
     });
   } catch (e) {
-    logger.error('Failed to record', e);
+    logger.error('> Failed to record');
     console.error(e);
     return new Response('Bad request', { status: 400 });
   }
