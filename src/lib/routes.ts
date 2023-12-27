@@ -50,6 +50,8 @@ export const record = async (req: Request, app: App) => {
       }
     });
   } catch (e) {
+    logger.error('Failed to record', e);
+    console.error(e);
     return new Response('Bad request', { status: 400 });
   }
 };
