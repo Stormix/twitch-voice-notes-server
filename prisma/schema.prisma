@@ -12,7 +12,7 @@ datasource db {
 
 
 model VoiceNote {
-  id        Int      @id @default(autoincrement())
+  id   String @id @default(uuid())
   author    String
   path     String
   duration Int

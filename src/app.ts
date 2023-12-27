@@ -1,9 +1,19 @@
 import { PrismaClient } from '@prisma/client';
 import { Server } from 'bun';
+import { Cron } from 'croner';
+import { unlink } from 'node:fs/promises';
 import prisma from './lib/db';
 import Logger from './lib/logger';
-import { record } from './lib/routes';
+import { getVoiceNote, record } from './lib/routes';
 import { Client, WebSocket } from './types';
+
+const CORS_HEADERS = {
+  headers: {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': '*',
+    'Access-Control-Allow-Headers': '*'
+  }
+};
 
 export class App {
   server: Server | null = null;
@@ -13,6 +23,33 @@ export class App {
   logger = new Logger({ name: 'twitch-voice-notes' });
   db: PrismaClient = prisma;
 
+  cron = Cron('0 */5 * * * *', async () => {
+    // Delete all voice notes older than 5 minutes
+    const voiceNotes = await this.db.voiceNote.findMany({
+      where: {
+        createdAt: {
+          lt: new Date(Date.now() - 5 * 60 * 1000)
+        }
+      }
+    });
+
+    if (voiceNotes.length === 0) return;
+
+    this.logger.info('Deleting', voiceNotes.length, 'voice notes');
+
+    // Delete files
+    await Promise.all(voiceNotes.map((vn) => unlink(vn.path)));
+
+    // Delete records
+    await this.db.voiceNote.deleteMany({
+      where: {
+        id: {
+          in: voiceNotes.map((vn) => vn.id)
+        }
+      }
+    });
+  });
+
   constructor() {}
 
   listen(port: number | string) {
@@ -21,6 +58,12 @@ export class App {
     this.server = Bun.serve({
       port,
       fetch: (req, server) => {
+        // Handle CORS preflight requests
+        if (req.method === 'OPTIONS') {
+          const res = new Response('Ok', CORS_HEADERS);
+          return res;
+        }
+
         const url = new URL(req.url);
         switch (url.pathname) {
           case '/':
@@ -30,8 +73,10 @@ export class App {
               }
             });
           case '/record': {
-            return record(req);
+            return record(req, this);
           }
+          case '/audio':
+            return getVoiceNote(req);
           case '/ws':
             if (
               server.upgrade(req, {
@@ -92,6 +137,10 @@ export class App {
     this.server?.stop(true);
     clearInterval(this.heartbeat || undefined);
     this.db.$disconnect();
+  }
+
+  sendToAll(payload: unknown) {
+    Object.values(this.clients).forEach((client) => client.ws.send(JSON.stringify(payload)));
   }
 }
 
