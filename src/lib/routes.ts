@@ -19,12 +19,12 @@ export const record = async (req: Request, app: App) => {
       return new Response('No audio file', { status: 400 });
     }
 
-    const stream = audio.stream();
+    const buffer = await audio.arrayBuffer();
     const path = `data/${crypto.randomUUID()}.wav`;
 
     logger.info('Writing file to', path);
 
-    await writeFile(path, stream);
+    await writeFile(path, Buffer.from(buffer));
 
     const voiceNote = await prisma.voiceNote.create({
       data: {
