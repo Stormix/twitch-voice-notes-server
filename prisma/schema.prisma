@@ -14,6 +14,7 @@ datasource db {
 model VoiceNote {
   id   String @id @default(uuid())
   author    String
+  author_color String
   path     String
   duration Int
   channel   String

@@ -29,6 +29,7 @@ export const record = async (req: Request, app: App) => {
     const voiceNote = await prisma.voiceNote.create({
       data: {
         author: payload.author,
+        author_color: payload.color,
         path,
         channel: payload.channel,
         duration: 0 // todo
