@@ -6,6 +6,12 @@ const logger = new Logger({ name: 'twitch-voice-notes' });
 
 const main = async () => {
   const app = new App();
+
+  if (!env.ENABLED) {
+    logger.warn('App is disabled, exiting');
+    return;
+  }
+
   return app.listen(env.PORT);
 };
 

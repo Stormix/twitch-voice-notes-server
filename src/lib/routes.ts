@@ -24,6 +24,8 @@ export const record = async (req: Request, app: App) => {
       return new Response('No audio file', { status: 400 });
     }
 
+    // TODO: ensure the audio buffer is safe before writing to disk
+
     const buffer = await audio.arrayBuffer();
     const path = `data/${crypto.randomUUID()}.wav`;
 

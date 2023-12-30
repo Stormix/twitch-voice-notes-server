@@ -78,7 +78,7 @@ export class App {
         const url = new URL(req.url);
         switch (url.pathname) {
           case '/':
-            return new Response(JSON.stringify({ health: 'ok' }), {
+            return new Response(JSON.stringify({ health: 'ok', clients: Object.keys(this.clients).length }), {
               headers: {
                 'content-type': 'application/json'
               }
