@@ -7,7 +7,7 @@ import Logger from './lib/logger';
 import { getVoiceNote, record } from './lib/routes';
 import { Client, WebSocket } from './types';
 
-const CORS_HEADERS = {
+export const CORS_HEADERS = {
   headers: {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': '*',
@@ -18,7 +18,7 @@ const CORS_HEADERS = {
 export class App {
   server: Server | null = null;
   heartbeat: ReturnType<typeof setInterval> | null = null;
-  debug: boolean = true;
+  debug: boolean = false;
   clients: Record<string, Client> = {};
   logger = new Logger({ name: 'twitch-voice-notes' });
   db: PrismaClient = prisma;
@@ -141,7 +141,7 @@ export class App {
         client.ws.ping();
         client.ws.send(JSON.stringify({ type: 'heartbeat' }));
       });
-    }, 5_000);
+    }, 15_000);
   }
 
   stop() {

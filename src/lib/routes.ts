@@ -1,4 +1,4 @@
-import { App } from '@/app';
+import { App, CORS_HEADERS } from '@/app';
 import { writeFile } from 'node:fs/promises';
 import { Logger } from 'tslog';
 import prisma from './db';
@@ -50,7 +50,8 @@ export const record = async (req: Request, app: App) => {
 
     return new Response(JSON.stringify({ sent: 'ok' }), {
       headers: {
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        ...CORS_HEADERS.headers
       }
     });
   } catch (e) {
