@@ -139,6 +139,7 @@ export class App {
         }
         client.isAlive = false;
         client.ws.ping();
+        client.ws.send(JSON.stringify({ type: 'heartbeat' }));
       });
     }, 5_000);
   }
