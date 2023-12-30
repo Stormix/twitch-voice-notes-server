@@ -11,6 +11,11 @@ export const record = async (req: Request, app: App) => {
       return new Response('Method not allowed', { status: 405 });
     }
 
+    // Ensure the payload size is less than 5mb
+    if (req.headers.get('content-length') && parseInt(req.headers.get('content-length')!) > 5 * 1024 * 1024) {
+      return new Response('Payload too large', { status: 413 });
+    }
+
     const formdata = await req.formData();
     const payload = recordPayloadSchema.parse(Object.fromEntries(formdata));
     const audio = formdata.get('audio') as unknown as Blob;
@@ -36,17 +41,11 @@ export const record = async (req: Request, app: App) => {
       }
     });
 
-    logger.info('Broadcasting voice note', voiceNote);
-
-    app.sendToAll(
-      JSON.stringify({
-        type: 'voice-note',
-        channel: payload.channel,
-        payload: voiceNote
-      })
-    );
-
-    logger.info('Voice note created', voiceNote);
+    app.sendToAll({
+      type: 'voice-note',
+      channel: payload.channel,
+      payload: voiceNote
+    });
 
     return new Response(JSON.stringify({ sent: 'ok' }), {
       headers: {
