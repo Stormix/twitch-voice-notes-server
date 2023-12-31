@@ -65,7 +65,7 @@ export class App {
 
   setupCron() {
     this.cron = {
-      heartbeat: new Cron('*/15 * * * * *', heartbeat),
+      heartbeat: new Cron('*/5 * * * * *', heartbeat),
       deleteAllVoiceNotes: new Cron('0 */30 * * * *', () =>
         Sentry.withMonitor('delete-voice-notes', deleteAllVoiceNotes)
       )
