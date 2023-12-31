@@ -11,4 +11,8 @@ class Logger extends TsLogger<ILogObj> {
   }
 }
 
+export const logger = new Logger({
+  name: 'TwitchVoiceNotes'
+});
+
 export default Logger;

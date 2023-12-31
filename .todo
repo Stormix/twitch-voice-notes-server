@@ -1,0 +1,8 @@
+- Rate limit requests
+- Use redis to handle multi container communication
+- Use a proper storage solution for audio files
+- Detect profanity / offensive language 
+    - Transcribe audio to text 
+    - Run text through profanity detector
+    - If profanity is detected, flag the audio file as inappropriate
+    

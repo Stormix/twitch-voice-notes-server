@@ -1,158 +1,77 @@
-import { PrismaClient } from '@prisma/client';
+import notes from '@/controllers/notes';
+import ws from '@/controllers/ws';
+import { CORS_HEADERS } from '@/lib/config';
+import { deleteAllVoiceNotes, heartbeat } from '@/lib/cron';
+import { prisma } from '@/lib/db';
+import env from '@/lib/env';
+import { logger } from '@/lib/logger';
+import client from '@/lib/redis';
+import Router from '@/lib/router';
 import { Server } from 'bun';
 import { Cron } from 'croner';
-import { unlink } from 'node:fs/promises';
-import prisma from './lib/db';
-import Logger from './lib/logger';
-import { getVoiceNote, record } from './lib/routes';
-import { Client, WebSocket } from './types';
-
-export const CORS_HEADERS = {
-  headers: {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': '*',
-    'Access-Control-Allow-Headers': '*'
-  }
-};
 
 export class App {
   server: Server | null = null;
-  heartbeat: ReturnType<typeof setInterval> | null = null;
-  debug: boolean = false;
-  clients: Record<string, Client> = {};
-  logger = new Logger({ name: 'twitch-voice-notes' });
-  db: PrismaClient = prisma;
+  debug = env.isDev;
+  db = prisma;
+  redis = client;
+  cron: Cron[] = [];
+  router: Router = new Router();
 
-  cron = Cron('0 */30 * * * *', async () => {
-    // Delete all voice notes older than 5 minutes
-    const voiceNotes = await this.db.voiceNote.findMany({
-      where: {
-        createdAt: {
-          lt: new Date(Date.now() - 30 * 60 * 1000)
-        }
-      }
-    });
+  async listen(port: number | string) {
+    await this.redis.connect();
+    logger.info('Connected to Redis');
 
-    if (voiceNotes.length === 0) return;
+    await this.db.$connect();
+    logger.info('Connected to database');
 
-    this.logger.info('Deleting', voiceNotes.length, 'voice notes');
+    this.setup();
 
-    // Delete files
-    await Promise.all(
-      voiceNotes.map((vn) => {
-        try {
-          unlink(vn.path);
-        } catch (e) {
-          this.logger.warn('Failed to delete file, does it exist?', vn.path);
-        } finally {
-          return;
-        }
-      })
-    );
-
-    // Delete records
-    await this.db.voiceNote.deleteMany({
-      where: {
-        id: {
-          in: voiceNotes.map((vn) => vn.id)
-        }
-      }
-    });
-  });
-
-  constructor() {}
-
-  listen(port: number | string) {
-    this.db.$connect();
-    this.logger.info('Starting server on port', port);
     this.server = Bun.serve({
-      development: true,
+      development: this.debug,
       port,
-      fetch: (req, server) => {
-        // Handle CORS preflight requests
-        if (req.method === 'OPTIONS') {
-          const res = new Response('Ok', CORS_HEADERS);
-          return res;
-        }
-
-        const url = new URL(req.url);
-        switch (url.pathname) {
-          case '/':
-            return new Response(JSON.stringify({ health: 'ok', clients: Object.keys(this.clients).length }), {
-              headers: {
-                'content-type': 'application/json'
-              }
-            });
-          case '/record': {
-            return record(req, this);
-          }
-          case '/audio':
-            return getVoiceNote(req);
-          case '/ws':
-            if (
-              server.upgrade(req, {
-                data: {
-                  id: crypto.randomUUID()
-                }
-              })
-            ) {
-              return;
-            }
-            return new Response('Upgrade failed :(', { status: 500 });
-          default:
-            return new Response('Not found', { status: 404 });
-        }
-      },
+      fetch: this.router.fetch.bind(this.router),
       websocket: {
-        open: (ws: WebSocket) => {
-          this.logger.info('Client connected', ws.data.id);
-          this.clients[ws.data.id] = {
-            id: ws.data.id,
-            isAlive: true,
-            ws
-          };
-        },
-        close: (ws: WebSocket) => {
-          this.logger.info('Client disconnected', ws.data.id);
-          delete this.clients[ws.data.id];
-        },
-        message: (ws: WebSocket, message) => {
-          const payload = JSON.parse(message as string);
-          if (this.debug) this.logger.debug('Message received from', ws.data.id, payload);
-          //   this.handlers.forEach((handler) => handler.listen(ws, payload));
-        },
-        pong: (ws) => {
-          if (this.debug) this.logger.debug('Pong received from', ws.data.id);
-          const client = this.clients[ws.data.id];
-          if (!client) return;
-          this.clients[ws.data.id].isAlive = true;
-        }
+        open: ws.open.bind(ws),
+        close: ws.close.bind(ws),
+        message: ws.message.bind(ws),
+        pong: ws.pong.bind(ws)
       }
     });
 
-    this.heartbeat = setInterval(() => {
-      Object.values(this.clients).forEach((client) => {
-        if (!client.isAlive) {
-          console.info('Client', client.id, 'is dead, removing from clients');
-          delete this.clients[client.id];
-          return;
-        }
-        client.isAlive = false;
-        client.ws.ping();
-        client.ws.send(JSON.stringify({ type: 'heartbeat' }));
-      });
-    }, 15_000);
+    logger.info('⚡ Starting server on port', port);
   }
 
-  stop() {
-    Object.values(this.clients).forEach((client) => client.ws.close());
+  async stop() {
     this.server?.stop(true);
-    clearInterval(this.heartbeat || undefined);
-    this.db.$disconnect();
+    await this.db.$disconnect();
+    await this.redis.disconnect();
+    this.cron.forEach((c) => c.stop());
+    logger.info('Stopped server');
   }
 
-  sendToAll(payload: unknown) {
-    Object.values(this.clients).forEach((client) => client.ws.send(JSON.stringify(payload)));
+  async setup() {
+    this.setupRouter();
+    this.setupCron();
+  }
+
+  setupCron() {
+    this.cron = [new Cron('0 */30 * * * *', deleteAllVoiceNotes), new Cron('*/15 * * * * *', heartbeat)];
+  }
+
+  setupRouter() {
+    this.router.get('/', () => Response.json({ health: 'ok', connectedClients: Object.keys(ws.clients).length }));
+    this.router.get('/audio', (req) => notes.GET(req));
+    this.router.post('/record', (req) => notes.POST(req));
+    this.router.get('/ws', (req, server) => ws.upgrade(req, server));
+    this.router.options('/*', () =>
+      Response.json(
+        {
+          status: 'ok'
+        },
+        CORS_HEADERS
+      )
+    );
   }
 }
 
