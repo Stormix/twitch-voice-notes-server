@@ -30,7 +30,9 @@
     "radix3": "^1.1.0",
     "rate-limit-redis": "^4.2.0",
     "redis": "^4.6.12",
+    "rolling-rate-limiter": "^0.4.2",
     "tslog": "^4.9.2",
+    "typeid-js": "^0.3.0",
     "zod": "^3.22.4"
   }
 }

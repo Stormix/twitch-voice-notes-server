@@ -1,6 +1,5 @@
 import notes from '@/controllers/notes';
 import ws from '@/controllers/ws';
-import { CORS_HEADERS } from '@/lib/config';
 import { deleteAllVoiceNotes, heartbeat } from '@/lib/cron';
 import { prisma } from '@/lib/db';
 import env from '@/lib/env';
@@ -12,11 +11,11 @@ import { Cron } from 'croner';
 
 export class App {
   server: Server | null = null;
+  cron: Record<string, Cron> = {};
+  router: Router = new Router();
   debug = env.isDev;
   db = prisma;
   redis = client;
-  cron: Cron[] = [];
-  router: Router = new Router();
 
   async listen(port: number | string) {
     await this.redis.connect();
@@ -44,10 +43,17 @@ export class App {
 
   async stop() {
     this.server?.stop(true);
-    await this.db.$disconnect();
-    await this.redis.disconnect();
-    this.cron.forEach((c) => c.stop());
     logger.info('Stopped server');
+
+    await this.db.$disconnect();
+    logger.info('Disconnected from database');
+
+    await this.redis.disconnect();
+    logger.info('Disconnected from Redis');
+
+    this.cron.heartbeat.stop();
+    this.cron.deleteAllVoiceNotes.stop();
+    logger.info('Stopped cron jobs');
   }
 
   async setup() {
@@ -56,22 +62,17 @@ export class App {
   }
 
   setupCron() {
-    this.cron = [new Cron('0 */30 * * * *', deleteAllVoiceNotes), new Cron('*/15 * * * * *', heartbeat)];
+    this.cron = {
+      heartbeat: new Cron('*/15 * * * * *', heartbeat),
+      deleteAllVoiceNotes: new Cron('0 */30 * * * *', deleteAllVoiceNotes)
+    };
   }
 
   setupRouter() {
     this.router.get('/', () => Response.json({ health: 'ok', connectedClients: Object.keys(ws.clients).length }));
+    this.router.get('/ws', (req, server) => ws.UPGRADE(req, server));
     this.router.get('/audio', (req) => notes.GET(req));
-    this.router.post('/record', (req) => notes.POST(req));
-    this.router.get('/ws', (req, server) => ws.upgrade(req, server));
-    this.router.options('/*', () =>
-      Response.json(
-        {
-          status: 'ok'
-        },
-        CORS_HEADERS
-      )
-    );
+    this.router.post('/record', (req, server) => notes.POST(req, server));
   }
 }
 

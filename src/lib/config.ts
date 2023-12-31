@@ -1,3 +1,5 @@
+import { typeid } from 'typeid-js';
+
 export const CORS_HEADERS = {
   headers: {
     'Access-Control-Allow-Origin': '*',
@@ -5,3 +7,5 @@ export const CORS_HEADERS = {
     'Access-Control-Allow-Headers': '*'
   }
 };
+
+export const SERVER_ID = typeid('server').toString();

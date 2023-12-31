@@ -1,12 +1,15 @@
 import app from '@/app';
 import Controller from '@/controllers/base';
+import Logger from '@/lib/logger';
 import { Client, WebSocket } from '@/types';
 import { Server } from 'bun';
 
 class WebsocketController extends Controller {
+  logger = new Logger({ name: WebsocketController.name });
   clients: Record<string, Client> = {};
+  allConnectedClients: Record<string, string[]> = {};
 
-  upgrade(req: Request, server: Server) {
+  UPGRADE(req: Request, server: Server) {
     this.logger.info('Client requesting upgrade');
     if (
       server.upgrade(req, {

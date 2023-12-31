@@ -18,6 +18,17 @@ export class Router {
 
     const matched = this._router.lookup(pathname);
 
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': '*',
+          'Access-Control-Allow-Headers': '*'
+        }
+      });
+    }
+
     if (!matched) {
       return new Response('Not Found', {
         status: 404
