@@ -25,6 +25,7 @@
     "@elysiajs/cors": "^0.8.0",
     "@elysiajs/cron": "^0.8.0",
     "@prisma/client": "5.7.1",
+    "@sentry/bun": "^7.91.0",
     "croner": "^8.0.0",
     "envalid": "^8.0.0",
     "radix3": "^1.1.0",

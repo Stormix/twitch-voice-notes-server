@@ -6,6 +6,7 @@ import env from '@/lib/env';
 import { logger } from '@/lib/logger';
 import client from '@/lib/redis';
 import Router from '@/lib/router';
+import * as Sentry from '@sentry/bun';
 import { Server } from 'bun';
 import { Cron } from 'croner';
 
@@ -64,7 +65,9 @@ export class App {
   setupCron() {
     this.cron = {
       heartbeat: new Cron('*/15 * * * * *', heartbeat),
-      deleteAllVoiceNotes: new Cron('0 */30 * * * *', deleteAllVoiceNotes)
+      deleteAllVoiceNotes: new Cron('0 */30 * * * *', () =>
+        Sentry.withMonitor('delete-voice-notes', deleteAllVoiceNotes)
+      )
     };
   }
 
@@ -73,6 +76,13 @@ export class App {
     this.router.get('/ws', (req, server) => ws.UPGRADE(req, server));
     this.router.get('/audio', (req) => notes.GET(req));
     this.router.post('/record', (req, server) => notes.POST(req, server));
+  }
+
+  setupSentry() {
+    Sentry.init({
+      dsn: 'https://5d4a27b3ed704434e95e77fa27b0fa30@o84215.ingest.sentry.io/4506490481475584',
+      tracesSampleRate: 1.0
+    });
   }
 }
 
