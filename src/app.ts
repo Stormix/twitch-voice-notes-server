@@ -60,6 +60,7 @@ export class App {
   async setup() {
     this.setupRouter();
     this.setupCron();
+    this.setupSentry();
   }
 
   setupCron() {
