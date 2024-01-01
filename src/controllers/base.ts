@@ -71,7 +71,11 @@ class Controller {
   }
 
   file(file: BunFile) {
-    return new Response(file);
+    return new Response(file, {
+      headers: {
+        ...CORS_HEADERS.headers
+      }
+    });
   }
 
   tooLarge() {
