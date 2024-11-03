@@ -30,13 +30,10 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    acme.cert-manager.io/http01-edit-in-place: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/rewrite-target: /
   hosts:
-    - host: dwi-server.k8s.stormix.dev
+    - host: twitch-voice-notes.lab.stormix.dev
       paths:
         - path: /
           pathType: Prefix
@@ -47,7 +44,7 @@ ingress:
                 number: 3000
   tls:
     - hosts:
-        - dwi-server.k8s.stormix.dev
+        - twitch-voice-notes.lab.stormix.dev
       secretName: dwi-server-tls
 
 livenessProbe:

@@ -46,7 +46,7 @@ jobs:
           yq -i -y '.appVersion = "${{ env.version }}"' ./helm/Chart.yaml
       - name: Commit changes and create tag
         run: |
-          git remote set-url origin git@github.com:stormix/dwi-server.git
+          git remote set-url origin git@github.com:stormix/twitch-voice-notes-server.git
           git add package.json CHANGELOG.md helm/Chart.yaml
           git commit -m "chore(release): ${{ env.version }}"
           git tag ${{ env.version }}
