@@ -3,7 +3,6 @@ import ws from '@/controllers/ws';
 import { transform } from '@/dto/voice-note';
 import { prisma } from '@/lib/db';
 import env from '@/lib/env';
-import limiter from '@/lib/limiter';
 import Logger from '@/lib/logger';
 import { verifyUser } from '@/lib/twitch';
 import { recordPayloadSchema } from '@/lib/validation';
@@ -38,12 +37,12 @@ class NotesController extends Controller {
     try {
       // Check IP rate limit
       const ip = server.requestIP(req);
-      const rateLimitRes = await limiter.limitWithInfo(ip?.address || 'unknown');
+      // const rateLimitRes = await limiter.limitWithInfo(ip?.address || 'unknown');
 
-      if (rateLimitRes.blocked) {
-        this.logger.warn(`Rate limit exceeded for ${ip?.address || 'unknown'}`);
-        return this.tooManyRequests(undefined, rateLimitRes.millisecondsUntilAllowed / 1000);
-      }
+      // if (rateLimitRes.blocked) {
+      //   this.logger.warn(`Rate limit exceeded for ${ip?.address || 'unknown'}`);
+      //   return this.tooManyRequests(undefined, rateLimitRes.millisecondsUntilAllowed / 1000);
+      // }
 
       // Check bearer token
       const token = req.headers.get('authorization')?.split(' ')?.[1];
@@ -53,12 +52,12 @@ class NotesController extends Controller {
       if (!user) return this.unauthorized();
 
       // Check user rate limit
-      const userRateLimit = await limiter.limitWithInfo(user.name);
+      // const userRateLimit = await limiter.limitWithInfo(user.name);
 
-      if (userRateLimit.blocked) {
-        this.logger.warn(`Rate limit exceeded for ${user.name}`);
-        return this.tooManyRequests(undefined, userRateLimit.millisecondsUntilAllowed / 1000);
-      }
+      // if (userRateLimit.blocked) {
+      //   this.logger.warn(`Rate limit exceeded for ${user.name}`);
+      //   return this.tooManyRequests(undefined, userRateLimit.millisecondsUntilAllowed / 1000);
+      // }
 
       // Ensure the payload size is less than MAX_FILE_SIZE mb
       if (

@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: stormix/dwi-server
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets:
   - name: regcred
@@ -63,10 +63,10 @@ readinessProbe:
 resources:
   limits:
     cpu: 100m
-    memory: 250Mi
+    memory: 550Mi
   requests:
     cpu: 100m
-    memory: 200Mi
+    memory: 500Mi
 
 autoscaling:
   enabled: false
