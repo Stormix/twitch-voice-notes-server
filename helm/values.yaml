@@ -1,0 +1,90 @@
+replicaCount: 1
+
+image:
+  repository: stormix/dwi-server
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: regcred
+nameOverride: "dwi-server"
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: { secrets.infisical.com/auto-reload: "true" }
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: dwi-server.k8s.stormix.dev
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dwi-server
+              port:
+                number: 3000
+  tls:
+    - hosts:
+        - dwi-server.k8s.stormix.dev
+      secretName: dwi-server-tls
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 30
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 30
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 250Mi
+  requests:
+    cpu: 100m
+    memory: 200Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 1
+  targetMemoryUtilizationPercentage: 80
+
+volumes: []
+
+volumeMounts: []
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+secretRef: dwi-managed-secret

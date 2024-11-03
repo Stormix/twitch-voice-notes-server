@@ -1,12 +1,15 @@
 {
   "name": "twitch-voice-notes-server",
   "module": "index.ts",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "build": "bun build src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "release": "commit-and-tag-version",
+    "release:post": "genversion -f -p ./package.json --es6 src/version.ts"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.16.0",
@@ -16,7 +19,15 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.2",
     "prettier": "^3.1.1",
-    "prisma": "^5.7.1"
+    "prisma": "^5.7.1",
+    "genversion": "^3.2.0",
+    "commit-and-tag-version": "^12.4.4"
+  },
+  "commit-and-tag-version": {
+    "skip": {
+      "commit": true,
+      "tag": true
+    }
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
