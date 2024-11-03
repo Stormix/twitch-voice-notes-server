@@ -1,7 +1,7 @@
 {
   "name": "twitch-voice-notes-server",
   "module": "index.ts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
