@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.0.3 (2024-11-03)
+
+
+### Bug Fixes
+
+* repo name ([2566824](https://github.com/Stormix/twitch-voice-notes-server/commit/25668249ac80482ad7a71bb0447ec0bf970b22ea))
+
 ## 0.0.2 (2024-11-03)
 
 
